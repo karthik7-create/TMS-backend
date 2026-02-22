@@ -26,6 +26,7 @@ public final class TaskMapper {
                 .description(task.getDescription())
                 .status(task.getStatus())
                 .createdAt(task.getCreatedAt())
+                .userName(task.getUser() != null ? task.getUser().getFullName() : null)
                 .build();
     }
 

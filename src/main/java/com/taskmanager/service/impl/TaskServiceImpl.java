@@ -3,16 +3,19 @@ package com.taskmanager.service.impl;
 import com.taskmanager.dto.TaskDto;
 import com.taskmanager.entity.Task;
 import com.taskmanager.entity.TaskStatus;
+import com.taskmanager.entity.User;
 import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.mapper.TaskMapper;
 import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.TaskSpecification;
+import com.taskmanager.repository.UserRepository;
 import com.taskmanager.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,12 +30,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public TaskDto createTask(TaskDto taskDto) {
         log.info("Creating new task with title: {}", taskDto.getTitle());
         Task task = TaskMapper.toEntity(taskDto);
+
+        // Assign the currently authenticated user to the task
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        task.setUser(user);
+
         Task savedTask = taskRepository.save(task);
         log.info("Task created successfully with id: {}", savedTask.getId());
         return TaskMapper.toDto(savedTask);
