@@ -33,4 +33,6 @@ public class TaskDto {
     private TaskStatus status;
 
     private LocalDateTime createdAt;
+
+    private String userName;
 }
