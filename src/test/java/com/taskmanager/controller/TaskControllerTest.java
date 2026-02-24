@@ -209,6 +209,24 @@ class TaskControllerTest {
                     .andExpect(jsonPath("$.title").value("Updated Task"))
                     .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
         }
+
+        @Test
+        @DisplayName("Should return 404 Not Found when updating non-existent task")
+        void updateTask_NotFound() throws Exception {
+            when(taskService.updateTask(eq(99L), any(TaskDto.class)))
+                    .thenThrow(new ResourceNotFoundException("Task not found with id: 99"));
+
+            TaskDto requestBody = TaskDto.builder()
+                    .title("Updated Task")
+                    .description("Updated Description")
+                    .status(TaskStatus.IN_PROGRESS)
+                    .build();
+
+            mockMvc.perform(put("/api/tasks/99")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isNotFound());
+        }
     }
 
     // ==================== PATCH /api/tasks/{id}/status ====================
@@ -235,6 +253,20 @@ class TaskControllerTest {
                     .content(objectMapper.writeValueAsString(requestBody)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("DONE"));
+        }
+
+        @Test
+        @DisplayName("Should return 404 Not Found when updating status of non-existent task")
+        void updateTaskStatus_NotFound() throws Exception {
+            when(taskService.updateTaskStatus(eq(99L), any(TaskStatus.class)))
+                    .thenThrow(new ResourceNotFoundException("Task not found with id: 99"));
+
+            StatusUpdateDto requestBody = new StatusUpdateDto(TaskStatus.DONE);
+
+            mockMvc.perform(patch("/api/tasks/99/status")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isNotFound());
         }
     }
 
@@ -263,6 +295,41 @@ class TaskControllerTest {
 
             mockMvc.perform(delete("/api/tasks/99"))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    // ==================== GET /api/tasks with search ====================
+
+    @Nested
+    @DisplayName("GET /api/tasks with search")
+    class GetAllTasksWithSearchEndpoint {
+
+        @Test
+        @DisplayName("Should pass search parameter to service")
+        void getAllTasks_WithSearchParam() throws Exception {
+            Page<TaskDto> page = new PageImpl<>(List.of(sampleTaskDto));
+            when(taskService.getAllTasks(any(), eq("urgent"), any(Pageable.class))).thenReturn(page);
+
+            mockMvc.perform(get("/api/tasks")
+                    .param("search", "urgent"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray());
+
+            verify(taskService).getAllTasks(any(), eq("urgent"), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("Should pass both status and search parameters")
+        void getAllTasks_WithStatusAndSearch() throws Exception {
+            Page<TaskDto> page = new PageImpl<>(List.of(sampleTaskDto));
+            when(taskService.getAllTasks(eq(TaskStatus.IN_PROGRESS), eq("test"), any(Pageable.class)))
+                    .thenReturn(page);
+
+            mockMvc.perform(get("/api/tasks")
+                    .param("status", "IN_PROGRESS")
+                    .param("search", "test"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray());
         }
     }
 }
