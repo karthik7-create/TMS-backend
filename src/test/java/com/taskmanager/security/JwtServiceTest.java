@@ -140,4 +140,63 @@ class JwtServiceTest {
                     () -> jwtService.isTokenValid(token, testUser));
         }
     }
+
+    // ==================== Extra Claims Tests ====================
+
+    @Nested
+    @DisplayName("generateToken() with extra claims")
+    class ExtraClaimsTests {
+
+        @Test
+        @DisplayName("Should generate token with extra claims and extract them")
+        void generateToken_WithExtraClaims() {
+            java.util.Map<String, Object> extraClaims = new java.util.HashMap<>();
+            extraClaims.put("role", "ADMIN");
+            extraClaims.put("userId", 42);
+
+            String token = jwtService.generateToken(extraClaims, testUser);
+
+            assertNotNull(token);
+            assertFalse(token.isEmpty());
+            // Verify username still extractable
+            assertEquals("john@example.com", jwtService.extractUsername(token));
+        }
+
+        @Test
+        @DisplayName("Should extract custom claims via extractClaim")
+        void extractClaim_CustomClaim() {
+            java.util.Map<String, Object> extraClaims = new java.util.HashMap<>();
+            extraClaims.put("role", "ADMIN");
+
+            String token = jwtService.generateToken(extraClaims, testUser);
+
+            String role = jwtService.extractClaim(token, claims -> claims.get("role", String.class));
+            assertEquals("ADMIN", role);
+        }
+    }
+
+    // ==================== Malformed Token Tests ====================
+
+    @Nested
+    @DisplayName("Malformed/Invalid tokens")
+    class MalformedTokenTests {
+
+        @Test
+        @DisplayName("Should throw exception for malformed JWT token")
+        void extractUsername_MalformedToken_ThrowsException() {
+            assertThrows(Exception.class,
+                    () -> jwtService.extractUsername("not.a.valid.jwt"));
+        }
+
+        @Test
+        @DisplayName("Should throw exception for tampered JWT signature")
+        void isTokenValid_TamperedToken_ThrowsException() {
+            String token = jwtService.generateToken(testUser);
+            // Tamper with the signature by modifying the last character
+            String tamperedToken = token.substring(0, token.length() - 1) + "X";
+
+            assertThrows(Exception.class,
+                    () -> jwtService.isTokenValid(tamperedToken, testUser));
+        }
+    }
 }

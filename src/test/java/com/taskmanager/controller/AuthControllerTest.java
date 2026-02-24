@@ -178,5 +178,21 @@ class AuthControllerTest {
                     .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        @DisplayName("Should throw BadCredentialsException when user not found after auth")
+        void login_UserNotFoundAfterAuth() throws Exception {
+            // Auth succeeds but findByEmail returns empty
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenReturn(null);
+            when(userRepository.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+
+            LoginRequest request = new LoginRequest("ghost@example.com", "password123");
+
+            mockMvc.perform(post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 }

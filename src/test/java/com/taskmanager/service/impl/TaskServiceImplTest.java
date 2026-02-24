@@ -230,6 +230,50 @@ class TaskServiceImplTest {
             assertEquals(0, result.getTotalElements());
             assertTrue(result.getContent().isEmpty());
         }
+
+        @Test
+        @DisplayName("Should ignore empty search string and not add search spec")
+        void getAllTasks_EmptySearchString() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Task> taskPage = new PageImpl<>(List.of(testTask), pageable, 1);
+
+            when(taskRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(taskPage);
+
+            Page<TaskDto> result = taskService.getAllTasks(null, "", pageable);
+
+            assertNotNull(result);
+            assertEquals(1, result.getTotalElements());
+            verify(taskRepository).findAll(any(Specification.class), eq(pageable));
+        }
+
+        @Test
+        @DisplayName("Should ignore whitespace-only search string")
+        void getAllTasks_WhitespaceOnlySearch() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Task> taskPage = new PageImpl<>(List.of(testTask), pageable, 1);
+
+            when(taskRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(taskPage);
+
+            Page<TaskDto> result = taskService.getAllTasks(null, "   ", pageable);
+
+            assertNotNull(result);
+            assertEquals(1, result.getTotalElements());
+        }
+
+        @Test
+        @DisplayName("Should apply both status AND search filters when both provided")
+        void getAllTasks_WithStatusAndSearch() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Task> taskPage = new PageImpl<>(List.of(testTask), pageable, 1);
+
+            when(taskRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(taskPage);
+
+            Page<TaskDto> result = taskService.getAllTasks(TaskStatus.TODO, "Test", pageable);
+
+            assertNotNull(result);
+            assertEquals(1, result.getTotalElements());
+            verify(taskRepository).findAll(any(Specification.class), eq(pageable));
+        }
     }
 
     // ==================== updateTask Tests ====================
